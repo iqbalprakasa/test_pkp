@@ -1,0 +1,199 @@
+<div class="space-y-6">
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div>
+      <h1 class="text-2xl font-bold text-slate-950 tracking-tight">Daftar Produk</h1>
+      <p class="text-sm text-slate-500">Manajemen data barang, stok, penyesuaian diskon, dan katalog penjualan.</p>
+    </div> 
+  </div>
+
+  <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm mb-6 flex flex-col sm:flex-row items-center gap-4">
+    <div class="relative w-full sm:max-w-md">
+      <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+      </span>
+
+      <input 
+        type="text" 
+        [(ngModel)]="searchQuery"
+        (input)="onSearchChange()"
+        placeholder="Cari produk berdasarkan nama, brand, atau kategori..." 
+        class="w-full pl-11 pr-10 py-2.5 bg-slate-50 text-slate-900 placeholder-slate-400 text-sm rounded-lg border border-slate-200 focus:outline-none focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+      />
+
+      <button 
+        *ngIf="searchQuery"
+        (click)="clearSearch()"
+        class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 transition-colors"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+
+    <div class="text-xs text-slate-500 sm:ml-auto font-medium" *ngIf="!isLoading">
+      Menampilkan <span class="text-slate-900 font-bold">{{ filteredProducts?.length || 0 }}</span> produk
+    </div>
+  </div>
+
+  <div *ngIf="isLoading()" class="flex flex-col items-center justify-center py-20 space-y-3">
+    <div class="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
+    <p class="text-sm text-slate-500 font-medium">Sedang memuat data dari API...</p>
+  </div>
+
+  <div *ngIf="!isLoading() && filteredProducts?.length === 0" class="text-center py-16 bg-white rounded-xl border border-dashed border-slate-300">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-slate-300 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+    <h3 class="text-base font-semibold text-slate-900">Produk Tidak Ditemukan</h3>
+    <p class="text-sm text-slate-500 mt-1">Kata kunci "{{ searchQuery }}" tidak cocok dengan komoditas apa pun.</p>
+  </div>
+
+  <div *ngIf="!isLoading()" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    
+    <div *ngFor="let item of filteredProducts" class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col hover:shadow-md transition-shadow duration-200">
+      
+      <div class="relative bg-slate-100 aspect-video flex items-center justify-center overflow-hidden border-b border-slate-100">
+        <img (click)="viewProductDetail(item.id)" [src]="item.thumbnail" [alt]="item.title" class="object-cover h-full w-full hover:scale-105 transition-transform duration-300">
+        
+        <span class="absolute top-3 left-3 bg-rose-500 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-sm">
+          -{{ item.discountPercentage }}%
+        </span>
+
+        <span [ngClass]="{
+          'bg-emerald-100 text-emerald-700 border-emerald-200': item.availabilityStatus === 'In Stock',
+          'bg-amber-100 text-amber-700 border-amber-200': item.availabilityStatus !== 'In Stock'
+        }" class="absolute top-3 right-3 text-[11px] font-semibold px-2 py-0.5 rounded-md border backdrop-blur-sm">
+          {{ item.availabilityStatus }}
+        </span>
+      </div>
+
+      <div class="p-5 flex-1 flex flex-col justify-between space-y-4">
+        <div class="space-y-2">
+          <div class="flex items-center gap-2 text-xs text-slate-400 font-medium uppercase tracking-wider">
+            <span>{{ item.brand || 'No Brand' }}</span>
+            <span>•</span>
+            <span class="text-indigo-600">{{ item.category }}</span>
+          </div>
+
+          <h2 (click)="viewProductDetail(item.id)" class="font-bold text-slate-900 text-base line-clamp-1 hover:text-indigo-600 cursor-pointer">
+            {{ item.title }}
+          </h2>
+
+          <p class="text-slate-500 text-xs line-clamp-2 leading-relaxed">
+            {{ item.description }}
+          </p>
+        </div>
+
+        <div class="flex items-center justify-between border-t border-b border-slate-50 py-2 text-xs">
+          <div class="flex items-center gap-1">
+            <div class="flex text-amber-400">
+              <span *ngFor="let star of getStars(item.rating)">★</span>
+              <span *ngIf="item.rating < 4" class="text-slate-200">★</span>
+            </div>
+            <span class="text-slate-600 font-medium">({{ item.rating }})</span>
+          </div>
+
+          <div class="text-slate-500">
+            Stok: <span class="font-bold text-slate-800">{{ item.stock }} pcs</span>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between pt-1">
+          <div>
+            <p class="text-xs text-slate-400 line-through font-medium">
+              ${{ item.price | number:'1.2-2' }}
+            </p>
+            <p class="text-lg font-extrabold text-slate-900 tracking-tight">
+              ${{ getDiscountedPrice(item.price, item.discountPercentage) | number:'1.2-2' }}
+            </p>
+          </div>
+
+          <div class="flex gap-1.5">
+            <button class="p-2 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 border border-slate-200 hover:border-indigo-100 rounded-lg transition-colors" title="Edit Produk">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+            </button>
+            <button class="p-2 text-slate-500 hover:text-rose-600 hover:bg-rose-50 border border-slate-200 hover:border-rose-100 rounded-lg transition-colors" title="Hapus Produk">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-4v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+<div *ngIf="isModalOpen" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+  
+  <div class="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-2xl overflow-hidden max-h-[90vh] flex flex-col">
+    
+    <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+      <h3 class="font-bold text-slate-900 text-lg">
+        {{ isLoadingDetail() ? 'Memuat Detail...' : selectedProduct?.title }}
+      </h3>
+      <button (click)="closeModal()" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-200 transition-colors">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+      </button>
+    </div>
+
+    <!-- <div *ngIf="isLoadingDetail()" class="p-12 flex flex-col items-center justify-center space-y-3">
+      <div class="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
+      <p class="text-sm text-slate-500">Mengambil spesifikasi produk dari server...</p>
+    </div> -->
+
+    <div *ngIf="!isLoadingDetail() && selectedProduct" class="p-6 overflow-y-auto space-y-6 flex-1">
+      
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-50 p-3 rounded-xl border border-slate-100">
+        <div class="aspect-video bg-white rounded-lg overflow-hidden flex items-center justify-center border border-slate-200">
+          <img [src]="selectedProduct?.images[0] || selectedProduct?.thumbnail" class="object-contain h-full max-h-48 p-2">
+        </div>
+        <div class="flex flex-col justify-center items-center p-3 bg-white rounded-lg border border-slate-200">
+          <img [src]="selectedProduct?.meta?.qrCode" alt="QR Code" class="w-24 h-24">
+          <span class="text-[10px] text-slate-400 mt-2 font-mono">Barcode: {{ selectedProduct?.meta?.barcode }}</span>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-y-4 gap-x-6 text-sm">
+        <div>
+          <span class="block text-xs font-semibold text-slate-400 uppercase tracking-wider">Brand / Merek</span>
+          <span class="font-medium text-slate-900">{{ selectedProduct?.brand || 'Tidak Ada Brand' }}</span>
+        </div>
+        <div>
+          <span class="block text-xs font-semibold text-slate-400 uppercase tracking-wider">Kategori</span>
+          <span class="font-medium text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded text-xs">{{ selectedProduct?.category }}</span>
+        </div>
+        <div>
+          <span class="block text-xs font-semibold text-slate-400 uppercase tracking-wider">Kode SKU</span>
+          <span class="font-mono text-slate-700 text-xs">{{ selectedProduct?.sku }}</span>
+        </div>
+        <div>
+          <span class="block text-xs font-semibold text-slate-400 uppercase tracking-wider">Informasi Garansi</span>
+          <span class="font-medium text-slate-900">{{ selectedProduct?.warrantyInformation }}</span>
+        </div>
+        <div>
+          <span class="block text-xs font-semibold text-slate-400 uppercase tracking-wider">Berat Barang</span>
+          <span class="font-medium text-slate-900">{{ selectedProduct?.weight }} gram</span>
+        </div>
+        <div>
+          <span class="block text-xs font-semibold text-slate-400 uppercase tracking-wider">Kebijakan Pengembalian</span>
+          <span class="font-medium text-rose-600">{{ selectedProduct?.returnPolicy }}</span>
+        </div>
+      </div>
+
+      <div class="border-t border-slate-100 pt-4">
+        <span class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Deskripsi Lengkap</span>
+        <p class="text-slate-600 text-sm leading-relaxed">{{ selectedProduct?.description }}</p>
+      </div>
+    </div>
+
+    <div class="px-6 py-3 border-t border-slate-100 flex items-center justify-end bg-slate-50">
+      <button (click)="closeModal()" class="px-4 py-2 rounded-lg text-sm font-medium bg-slate-200 text-slate-700 hover:bg-slate-300 transition-colors">
+        Tutup Detail
+      </button>
+    </div>
+
+  </div>
+</div>
